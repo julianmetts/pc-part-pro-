@@ -27,7 +27,6 @@
     .issue{background:rgba(239,68,68,0.1);color:var(--danger);padding:8px;border-radius:8px;margin-top:8px}
     .ok{background:rgba(16,185,129,0.06);color:var(--success);padding:8px;border-radius:8px;margin-top:8px}
     .muted{color:var(--muted)}
-    footer{margin-top:20px;font-size:13px;color:var(--muted)}
     .file-input{display:inline-block}
     @media (max-width:880px){.grid{grid-template-columns:1fr;}.build{position:relative;top:0}}
   </style>
@@ -85,17 +84,9 @@
         </div>
 
         <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
-
-        <div>
-          <details>
-            <summary style="cursor:pointer">Parts DB (JSON)</summary>
-            <pre id="partsJson" style="max-height:200px;overflow:auto;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;font-size:12px"></pre>
-          </details>
-        </div>
       </aside>
     </div>
 
-    <footer class="muted small">Tip: drag CSV into Import to add parts. This demo uses simple heuristics — adapt as needed.</footer>
   </div>
 
 <script>
@@ -447,4 +438,5 @@ window.saveParts = saveParts;
 </script>
 </body>
 </html>
+
 
