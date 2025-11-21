@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tech Part Picker (HTML)</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa6b2;--accent:#3b82f6;--success:#10b981;--danger:#ef4444}
+    body{font-family:Inter,system-ui,Arial,sans-serif;background:linear-gradient(180deg,#071024 0%, #081226 100%);color:#e6eef6;margin:0;padding:24px}
+    .container{max-width:1100px;margin:0 auto}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(4,8,16,0.6);margin-bottom:16px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    input[type="text"],select{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    button{background:var(--accent);color:white;padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:12px}
+    .parts-list{height:600px;overflow:auto}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px}
+    th{position:sticky;top:0;background:rgba(255,255,255,0.02);backdrop-filter:blur(6px)}
+    .small{font-size:12px;color:var(--muted)}
+    .chip{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.03);font-size:12px}
+    .build{position:sticky;top:16px}
+    .build-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));margin-bottom:8px}
+    .issue{background:rgba(239,68,68,0.1);color:var(--danger);padding:8px;border-radius:8px;margin-top:8px}
+    .ok{background:rgba(16,185,129,0.06);color:var(--success);padding:8px;border-radius:8px;margin-top:8px}
+    .muted{color:var(--muted)}
+    footer{margin-top:20px;font-size:13px;color:var(--muted)}
+    .file-input{display:inline-block}
+    @media (max-width:880px){.grid{grid-template-columns:1fr;}.build{position:relative;top:0}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Tech Part Picker — HTML</h1>
+        <div class="small muted">Local demo: search, filter, build, compatibility checks, CSV export/import.</div>
+      </div>
+
+      <div class="controls">
+        <input id="search" type="text" placeholder="Search parts..." />
+        <select id="categoryFilter"><option>All</option></select>
+        <select id="sortBy"><option value="category">Sort: Category</option><option value="price">Price ↑</option><option value="name">Name</option></select>
+        <button id="clearParts" class="ghost">Reset Parts DB</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card parts-list">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="small muted">Parts</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="small muted">Import CSV <input id="importParts" type="file" accept=".csv" style="margin-left:6px" /></label>
+            <button id="addSample" class="ghost">Add Part</button>
+          </div>
+        </div>
+
+        <table id="partsTable" aria-label="Parts table">
+          <thead>
+            <tr><th>Name</th><th class="small">Category</th><th class="small">Details</th><th class="small">Price</th><th></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <aside class="card build">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Current Build</strong><div class="small muted">One per category (multiple GPUs allowed)</div></div>
+          <div style="display:flex;gap:8px">
+            <button id="exportBuild">Export CSV</button>
+            <button id="clearBuild" class="ghost">Clear</button>
+          </div>
+        </div>
+
+        <div id="buildList" style="margin-top:12px"></div>
+
+        <div id="compatBox" class="muted small" style="margin-top:12px"></div>
+
+        <div style="margin-top:12px">
+          <div class="small muted">Total price</div>
+          <div style="font-size:18px;font-weight:600" id="totalPrice">$0</div>
+        </div>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+        <div>
+          <details>
+            <summary style="cursor:pointer">Parts DB (JSON)</summary>
+            <pre id="partsJson" style="max-height:200px;overflow:auto;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;font-size:12px"></pre>
+          </details>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="muted small">Tip: drag CSV into Import to add parts. This demo uses simple heuristics — adapt as needed.</footer>
+  </div>
+
+<script>
+/* -------- Sample data & persistence -------- */
+const SAMPLE_PARTS = [
+  { id: 1, name: "Intel Core i7-13700K", category: "CPU", socket: "LGA1700", price: 399, tdp: 125 },
+  { id: 2, name: "AMD Ryzen 9 7900X", category: "CPU", socket: "AM5", price: 429, tdp: 170 },
+  { id: 3, name: "ASUS PRIME Z790-P", category: "Motherboard", socket: "LGA1700", ramType: "DDR5", price: 220 },
+  { id: 4, name: "MSI MAG B650 TOMAHAWK", category: "Motherboard", socket: "AM5", ramType: "DDR5", price: 199 },
+  { id: 5, name: "Corsair Vengeance 32GB (2x16) DDR5-6000", category: "RAM", ramType: "DDR5", capacityGB: 32, price: 179 },
+  { id: 6, name: "G.SKILL Ripjaws 16GB DDR4-3200", category: "RAM", ramType: "DDR4", capacityGB: 16, price: 49 },
+  { id: 7, name: "NVIDIA RTX 4070", category: "GPU", price: 599, tdp: 200 },
+  { id: 8, name: "Samsung 970 EVO Plus 1TB", category: "Storage", interface: "NVMe", price: 99 },
+  { id: 9, name: "Seagate BarraCuda 2TB", category: "Storage", interface: "SATA", price: 54 },
+  { id: 10, name: "Corsair RM850x 850W", category: "PSU", wattage: 850, price: 139 },
+  { id: 11, name: "NZXT H510", category: "Case", price: 79 },
+  { id: 12, name: "Noctua NH-D15", category: "Cooler", supportedSockets: ["LGA1700","AM5"], price: 99 }
+];
+
+const PARTS_KEY = "tpp_parts_v1_html";
+const BUILD_KEY = "tpp_build_v1_html";
+
+let parts = loadParts();
+let build = loadBuild();
+
+/* -------- DOM elements -------- */
+const partsTableBody = document.querySelector("#partsTable tbody");
+const categoryFilter = document.getElementById("categoryFilter");
+const searchInput = document.getElementById("search");
+const sortBySelect = document.getElementById("sortBy");
+const buildList = document.getElementById("buildList");
+const compatBox = document.getElementById("compatBox");
+const totalPriceEl = document.getElementById("totalPrice");
+const partsJson = document.getElementById("partsJson");
+
+const importPartsInput = document.getElementById("importParts");
+const addSampleBtn = document.getElementById("addSample");
+const exportBuildBtn = document.getElementById("exportBuild");
+const clearBuildBtn = document.getElementById("clearBuild");
+const clearPartsBtn = document.getElementById("clearParts");
+
+/* -------- Initialize UI -------- */
+function loadParts(){
+  try {
+    const raw = localStorage.getItem(PARTS_KEY);
+    if(!raw) { localStorage.setItem(PARTS_KEY, JSON.stringify(SAMPLE_PARTS)); return [...SAMPLE_PARTS]; }
+    return JSON.parse(raw);
+  } catch(e){ localStorage.removeItem(PARTS_KEY); localStorage.setItem(PARTS_KEY, JSON.stringify(SAMPLE_PARTS)); return [...SAMPLE_PARTS]; }
+}
+function loadBuild(){
+  try {
+    const raw = localStorage.getItem(BUILD_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e){ localStorage.removeItem(BUILD_KEY); return {}; }
+}
+function saveParts(){ localStorage.setItem(PARTS_KEY, JSON.stringify(parts)); renderParts(); updatePartsJson(); }
+function saveBuild(){ localStorage.setItem(BUILD_KEY, JSON.stringify(build)); renderBuild(); }
+
+/* -------- Rendering -------- */
+function getCategories(){
+  const cats = new Set(parts.map(p=>p.category));
+  return ["All", ...Array.from(cats).sort()];
+}
+
+function renderCategoryFilter(){
+  categoryFilter.innerHTML = "";
+  getCategories().forEach(cat=>{
+    const opt = document.createElement("option");
+    opt.textContent = cat;
+    categoryFilter.appendChild(opt);
+  });
+}
+
+function renderParts(){
+  const q = searchInput.value.trim().toLowerCase();
+  const category = categoryFilter.value || "All";
+  const sortBy = sortBySelect.value;
+  let list = parts.slice();
+  if(category !== "All") list = list.filter(p=>p.category === category);
+  if(q) list = list.filter(p => (p.name||"").toLowerCase().includes(q));
+  if(sortBy === "price") list.sort((a,b)=>(a.price||0)-(b.price||0));
+  if(sortBy === "name") list.sort((a,b)=> (a.name||"").localeCompare(b.name));
+  if(sortBy === "category") list.sort((a,b)=> (a.category||"").localeCompare(b.category));
+
+  partsTableBody.innerHTML = "";
+  if(list.length===0){
+    partsTableBody.innerHTML = "<tr><td colspan='5' class='muted small'>No parts match.</td></tr>";
+    return;
+  }
+
+  list.forEach(p=>{
+    const tr = document.createElement("tr");
+    const details = [];
+    if(p.socket) details.push(p.socket);
+    if(p.ramType) details.push(p.ramType);
+    if(p.capacityGB) details.push(p.capacityGB+"GB");
+    if(p.interface) details.push(p.interface);
+    if(p.wattage) details.push(p.wattage+"W");
+    if(p.tdp) details.push("TDP:"+p.tdp+"W");
+
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(p.name)}</strong><div class="small muted">${p.id}</div></td>
+      <td class="small">${escapeHtml(p.category)}</td>
+      <td class="small">${escapeHtml(details.join(" • "))}</td>
+      <td class="small">$${Number(p.price||0).toFixed(2)}</td>
+      <td style="text-align:right"><button data-id="${p.id}" class="addBtn">Add</button></td>
+    `;
+    partsTableBody.appendChild(tr);
+  });
+
+  // wire add buttons
+  partsTableBody.querySelectorAll(".addBtn").forEach(btn=>{
+    btn.onclick = ()=> {
+      const id = Number(btn.dataset.id);
+      const p = parts.find(x=>x.id===id);
+      if(p) addToBuild(p);
+    };
+  });
+}
+
+function renderBuild(){
+  buildList.innerHTML = "";
+  const entries = Object.entries(build);
+  if(entries.length === 0){ buildList.innerHTML = "<div class='small muted'>Build is empty</div>"; updateTotalsAndCompatibility(); return; }
+
+  entries.forEach(([slot,p])=>{
+    const div = document.createElement("div");
+    div.className = "build-item";
+    div.innerHTML = `
+      <div>
+        <div><strong>${escapeHtml(slot)}</strong></div>
+        <div class="small muted">${escapeHtml(p.name)}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="small muted">$${Number(p.price||0).toFixed(2)}</div>
+        <div style="margin-top:6px"><button class="removeBtn" data-slot="${escapeHtml(slot)}">Remove</button></div>
+      </div>
+    `;
+    buildList.appendChild(div);
+  });
+
+  buildList.querySelectorAll(".removeBtn").forEach(b=>{
+    b.onclick = ()=> {
+      const slot = b.dataset.slot;
+      removeFromBuild(slot);
+    };
+  });
+
+  updateTotalsAndCompatibility();
+}
+
+function updateTotalsAndCompatibility(){
+  // total price
+  const total = Object.values(build).reduce((s,p)=>s + (Number(p.price)||0), 0);
+  totalPriceEl.textContent = `$${total.toFixed(2)}`;
+
+  // compatibility
+  const issues = computeCompatibilityIssues(build);
+  compatBox.innerHTML = "";
+  if(issues.length===0){
+    compatBox.innerHTML = `<div class="ok">No obvious compatibility issues detected.</div>`;
+    return;
+  }
+  const html = issues.map(i => `<div class="issue">${escapeHtml(i.message)}</div>`).join("");
+  compatBox.innerHTML = html;
+}
+
+/* -------- Build logic -------- */
+function addToBuild(part){
+  // allow multiple GPUs (GPU-1, GPU-2...), otherwise one per category.
+  if(part.category === "GPU"){
+    const gpuCount = Object.keys(build).filter(k=>k.startsWith("GPU")).length;
+    build[`GPU-${gpuCount+1}`] = part;
+  } else {
+    build[part.category] = part;
+  }
+  saveBuild();
+}
+
+function removeFromBuild(slot){
+  delete build[slot];
+  saveBuild();
+}
+
+function clearBuild(){
+  build = {};
+  saveBuild();
+}
+
+/* -------- Compatibility heuristics -------- */
+function computeCompatibilityIssues(buildObj){
+  const issues = [];
+  const values = Object.values(buildObj);
+  const cpu = values.find(p=>p.category==="CPU");
+  const mobo = values.find(p=>p.category==="Motherboard");
+  const ram = values.find(p=>p.category==="RAM");
+  const psu = values.find(p=>p.category==="PSU");
+  const gpus = Object.keys(buildObj).filter(k=>k.startsWith("GPU")).map(k=>buildObj[k]);
+
+  if(cpu && mobo && cpu.socket && mobo.socket && cpu.socket !== mobo.socket){
+    issues.push({type:"socket", message:`CPU socket (${cpu.socket}) doesn't match motherboard socket (${mobo.socket}).`});
+  }
+  if(mobo && ram && mobo.ramType && ram.ramType && mobo.ramType !== ram.ramType){
+    issues.push({type:"ram", message:`Motherboard requires ${mobo.ramType} but selected RAM is ${ram.ramType}.`});
+  }
+
+  // Simple PSU check: sum TDPs of CPU+GPUs, multiply by 1.5 margin
+  const totalTDP = [cpu, ...gpus].filter(Boolean).reduce((s,p)=>s + (Number(p.tdp)||0), 0);
+  if(psu && psu.wattage && totalTDP){
+    const required = Math.ceil(totalTDP * 1.5);
+    if(Number(psu.wattage) < required){
+      issues.push({type:"psu", message:`Selected PSU (${psu.wattage}W) may be insufficient for estimated draw (${totalTDP}W). Consider >= ${required}W.`});
+    }
+  }
+
+  return issues;
+}
+
+/* -------- CSV export/import -------- */
+function exportBuildCSV(){
+  const rows = [["slot","id","name","category","price"]];
+  Object.entries(build).forEach(([slot,p])=>{
+    rows.push([slot,p.id,p.name,p.category,p.price]);
+  });
+  const csv = rows.map(r=> r.map(c=> `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "build.csv"; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importPartsCSV(file){
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if(lines.length < 2) return alert("CSV appears empty or malformed.");
+    const headers = lines.shift().split(",").map(s=>s.replace(/^"|"$/g,"").trim());
+    const newParts = lines.map(line=>{
+      // naive CSV parse (works for simple quoted CSVs)
+      const cols = splitCSVLine(line);
+      const obj = {};
+      cols.forEach((c,i)=> obj[headers[i]] = c.replace(/^"|"$/g,""));
+      // normalize fields
+      if(obj.id) obj.id = Number(obj.id);
+      else obj.id = Date.now() + Math.floor(Math.random()*10000);
+      if(obj.price) obj.price = Number(obj.price);
+      if(obj.wattage) obj.wattage = Number(obj.wattage);
+      if(obj.tdp) obj.tdp = Number(obj.tdp);
+      return obj;
+    });
+    // prepend imported (but don't duplicate ids)
+    const existingIds = new Set(parts.map(p=>p.id));
+    parts = [...newParts.filter(p=>!existingIds.has(p.id)), ...parts];
+    saveParts();
+    renderCategoryFilter();
+    renderParts();
+    alert(`Imported ${newParts.length} rows (duplicates skipped by id).`);
+  };
+  reader.readAsText(file);
+}
+
+function splitCSVLine(line){
+  // Simple CSV splitter that supports quoted fields (not fully RFC-compliant but adequate for basic usage)
+  const out = []; let cur = "", inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    const ch = line[i];
+    if(ch === '"' ) {
+      if(inQuotes && line[i+1] === '"') { cur += '"'; i++; continue; }
+      inQuotes = !inQuotes; continue;
+    }
+    if(ch === ',' && !inQuotes){ out.push(cur); cur=""; continue; }
+    cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+/* -------- Helpers & small UI actions -------- */
+function escapeHtml(s){ if(s===undefined||s===null) return ""; return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+function updatePartsJson(){ partsJson.textContent = JSON.stringify(parts, null, 2); }
+
+/* -------- Event wiring -------- */
+searchInput.oninput = ()=> renderParts();
+categoryFilter.onchange = ()=> renderParts();
+sortBySelect.onchange = ()=> renderParts();
+
+addSampleBtn.onclick = ()=>{
+  // open a quick prompt to add a part (simple UX)
+  const name = prompt("Part name (e.g. 'Cool Brand 123'):");
+  if(!name) return;
+  const category = prompt("Category (CPU, Motherboard, RAM, GPU, PSU, Storage, Case, Cooler):","Misc") || "Misc";
+  const price = Number(prompt("Price (USD):","0")) || 0;
+  const obj = { id: Date.now(), name, category, price };
+  const extra = prompt("Extra attributes (key=value pairs comma separated). Example: socket=LGA1700,tdp=125,ramType=DDR5");
+  if(extra){
+    extra.split(",").forEach(kv=>{
+      const [k,v] = kv.split("=").map(s=>s && s.trim());
+      if(!k) return;
+      // simple conversions
+      if(k === "tdp" || k === "wattage" || k === "price" || k === "capacityGB") obj[k] = Number(v);
+      else if(k === "supportedSockets") obj[k] = v.split("|");
+      else obj[k] = v;
+    });
+  }
+  parts.unshift(obj);
+  saveParts();
+  renderCategoryFilter();
+  renderParts();
+};
+
+clearPartsBtn.onclick = ()=> {
+  if(!confirm("Reset parts database to built-in sample data? This will replace your saved parts.")) return;
+  parts = [...SAMPLE_PARTS];
+  saveParts();
+  renderCategoryFilter();
+  renderParts();
+};
+
+importPartsInput.onchange = (e)=>{
+  const f = e.target.files[0];
+  if(f) importPartsCSV(f);
+  importPartsInput.value = "";
+};
+
+exportBuildBtn.onclick = exportBuildCSV;
+clearBuildBtn.onclick = ()=>{ if(confirm("Clear the current build?")) { clearBuild(); } };
+
+/* keyboard: Enter on search to focus first add button (small convenience) */
+searchInput.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter"){
+    const first = partsTableBody.querySelector(".addBtn");
+    if(first) first.click();
+  }
+});
+
+/* initial render */
+renderCategoryFilter();
+renderParts();
+renderBuild();
+updatePartsJson();
+
+/* expose save function for parts modifications */
+window.saveParts = saveParts;
+
+/* ---- end ---- */
+</script>
+</body>
+</html>
