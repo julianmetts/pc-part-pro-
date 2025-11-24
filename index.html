@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tech Part Picker (HTML)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Tech Part Picker — HTML</h1>
+        <div class="small muted">Local demo: search, filter, build, compatibility checks, CSV export/import.</div>
+      </div>
+
+      <nav class="nav-bar">
+        <button id="navHome" class="nav-btn active">Home</button>
+        <button id="navCompare" class="nav-btn">Compare Parts</button>
+        <button id="navProducts" class="nav-btn">Products</button>
+        <button id="navAccount" class="nav-btn">Account</button>
+        <button id="navCart" class="nav-btn">Cart</button>
+      </nav>
+
+      <div class="controls" id="homeControls">
+        <input id="search" type="text" placeholder="Search parts..." />
+        <select id="categoryFilter"><option>All</option></select>
+        <select id="sortBy"><option value="category">Sort: Category</option><option value="price">Price ↑</option><option value="name">Name</option></select>
+        <button id="clearParts" class="ghost">Reset Parts DB</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Home Section (Original Parts Picker) -->
+      <section id="homeSection" class="section active">
+        <div class="grid">
+          <section class="card parts-list">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div class="small muted">Parts</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <label class="small muted">Import CSV <input id="importParts" type="file" accept=".csv" style="margin-left:6px" /></label>
+                <button id="addSample" class="ghost">Add Part</button>
+              </div>
+            </div>
+
+            <table id="partsTable" aria-label="Parts table">
+              <thead>
+                <tr><th>Name</th><th class="small">Category</th><th class="small">Details</th><th class="small">Price</th><th></th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </section>
+
+          <aside class="card build">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><strong>Current Build</strong><div class="small muted">One per category (multiple GPUs allowed)</div></div>
+              <div style="display:flex;gap:8px">
+                <button id="exportBuild">Export CSV</button>
+                <button id="clearBuild" class="ghost">Clear</button>
+              </div>
+            </div>
+
+            <div id="buildList" style="margin-top:12px"></div>
+
+            <div id="compatBox" class="muted small" style="margin-top:12px"></div>
+
+            <div style="margin-top:12px">
+              <div class="small muted">Total price</div>
+              <div style="font-size:18px;font-weight:600" id="totalPrice">$0</div>
+            </div>
+
+            <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+          </aside>
+        </div>
+      </section>
+
+      <!-- Compare Parts Section -->
+      <section id="compareSection" class="section">
+        <div class="card">
+          <h2>Compare Parts</h2>
+          <div style="margin-bottom:16px">
+            <label for="compareCategory">Select Category: </label>
+            <select id="compareCategory"><option>All</option></select>
+          </div>
+          <div id="comparePartsList" style="margin-bottom:16px"></div>
+          <button id="compareBtn">Compare Selected</button>
+          <div id="compareTable" style="margin-top:16px"></div>
+        </div>
+      </section>
+
+      <!-- Products Section (Detailed List) -->
+      <section id="productsSection" class="section">
+        <div class="card">
+          <h2>Product Catalog</h2>
+          <div id="productsList"></div>
+        </div>
+      </section>
+
+      <!-- Account Section -->
+      <section id="accountSection" class="section">
+        <div class="card">
+          <h2>Account</h2>
+          <div id="loginForm">
+            <input id="username" type="text" placeholder="Username" />
+            <input id="password" type="password" placeholder="Password" />
+            <button id="loginBtn">Login</button>
+            <button id="registerBtn">Register</button>
+          </div>
+          <div id="accountInfo" style="display:none">
+            <p>Welcome, <span id="userDisplay"></span>!</p>
+            <p>Saved Builds: <span id="savedBuilds">0</span></p>
+            <button id="logoutBtn">Logout</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cart Section -->
+      <section id="cartSection" class="section">
+        <div class="card">
+          <h2>Shopping Cart</h2>
+          <div id="cartItems"></div>
+          <div style="margin-top:16px">
+            <strong>Total: <span id="cartTotal">$0</span></strong>
+          </div>
+          <button id="checkoutBtn" style="margin-top:16px">Checkout</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="parts.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
