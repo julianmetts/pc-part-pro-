@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tech Part Picker (HTML)</title>
   <link rel="stylesheet" href="styles.css" />
+  <script>
+    // Check login status before loading the app
+    if(localStorage.getItem("tpp_logged_in") !== "yes"){
+      window.location.href = "login.html";
+    }
+  </script>
 </head>
 <body>
   <div class="container">
@@ -100,15 +106,8 @@
       <section id="accountSection" class="section">
         <div class="card">
           <h2>Account</h2>
-          <div id="loginForm">
-            <input id="username" type="text" placeholder="Username" />
-            <input id="password" type="password" placeholder="Password" />
-            <button id="loginBtn">Login</button>
-            <button id="registerBtn">Register</button>
-          </div>
-          <div id="accountInfo" style="display:none">
-            <p>Welcome, <span id="userDisplay"></span>!</p>
-            <p>Saved Builds: <span id="savedBuilds">0</span></p>
+          <div id="accountInfo">
+            <p id="loginStatus">Logged in as admin</p>
             <button id="logoutBtn">Logout</button>
           </div>
         </div>
